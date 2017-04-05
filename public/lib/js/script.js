@@ -190,14 +190,20 @@ jQuery(document).ready( function($){
       this.drawVisibility();
 
       //shade threats
-      if( this.shadeThreat ){ this.drawThreats(); }
-
+      if( this.chess.turn() == this.playerColor ) {
+      
+        if( this.shadeThreat ){ this.drawThreats(); }
+        
+      } 
 
     },
 
     isSquareVisible: function( squareId ) {
 
       //console.log('determining square visible');
+      var oldFen = this.chess.fen(),
+          newFen = oldFen.substr(0, oldFen.indexOf(' ') + 1) + ' ' + this.playerColor + ' - - 0 1';
+      this.chess.load(newFen);
       var moves = this.chess.moves({ verbose: true }),
           visible = false;
 
@@ -214,6 +220,7 @@ jQuery(document).ready( function($){
         });
 
       }
+      this.chess.load(oldFen);
 
       return visible;
 
@@ -227,11 +234,15 @@ jQuery(document).ready( function($){
         //Clear the visibility
         $('.board__square').attr('data-invisible', 'true');
 
+        var oldFen = this.chess.fen(),
+            newFen = oldFen.substr(0, oldFen.indexOf(' ') + 1) + ' ' + this.playerColor + ' - - 0 1';
+        this.chess.load(newFen);
         var moves = this.chess.moves({ verbose: true });
         if( typeof moves !== 'undefined' && moves.length > 0 ) {
 
           moves.forEach( function(move) {
 
+            console.log(move);
             //example value for move
             //{color:"w", flags:"n", from:"d2", piece:"p", san:"d3", to:"d3"}
             $('.board__square[data-id="'+move.to+'"]').attr('data-invisible', '');
@@ -239,6 +250,7 @@ jQuery(document).ready( function($){
           });
 
         }
+        console.log(this.chess.load(oldFen));
 
       } else {
 
@@ -376,7 +388,7 @@ jQuery(document).ready( function($){
 
           }
 
-          //this.drawBoard();
+          this.drawBoard();
           this.addCaptures( moveResult );
           this.playerSelectedSquare = '';
           this.clearMovement();
@@ -407,7 +419,7 @@ jQuery(document).ready( function($){
         if( moveResult !== 'null' ) {
 
           this.history.push( this.chess.fen() );
-          //this.drawBoard();
+          this.drawBoard();
           this.addCaptures( moveResult );
           this.clearMovement();
           this.selectedPiece = '';

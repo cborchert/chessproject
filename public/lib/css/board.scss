@@ -1,7 +1,114 @@
+@import 'normalize';
+
+$pure: #fff;
+$white: #eee;
+$gray: #ccc;
+$black: #323d49;
+$offBlack: #34495e;
+$blue: #2980b9;
+$lightBlue: #3498db;
+$green: #27ae60;
+$lightGreen: #2ecc71;
+
+body {
+
+  background: $black;
+  color: $pure;
+  font-family: 'Droid Sans', sans-serif;
+  letter-spacing: 1px;
+  
+}
+
+.btn {
+ 
+  color: $pure;
+  font-family: 'Droid Sans', sans-serif;
+  border: none;
+  outline: none;
+  border-radius: 0;
+  padding: 10px 30px;
+  font-size: 14px;
+  cursor: pointer;
+  
+  &, &:link, &:visited {
+   
+    background: $lightBlue;
+  
+  }
+  &:hover, &:focus, &:active {
+   
+    background: $blue; 
+    
+  }
+  
+  &--green {
+    
+    &, &:link, &:visited {
+
+      background: $lightGreen;
+
+    }
+    &:hover, &:focus, &:active {
+
+      background: $green; 
+
+    }
+    
+  }
+  
+  &--big {
+   
+    font-size: 16px;
+    padding: 20px 40px
+    
+  }
+  
+}
+
+.room {
+ 
+  width: 300px;
+  max-width: 100%;
+  margin: 20px;
+  background: $offBlack;
+  box-shadow: 2px 2px 2px rgba(0,0,0,0.5);
+  float: left;
+  padding: 15px 30px 30px;
+  
+  &__footer {
+    
+    text-align: center;
+    padding: 10px 0 0;
+    
+  }
+  
+}
+
+.rooms__header {
+  
+  padding: 30px 0;
+  text-align: center;
+  
+}
+
+input[type="checkbox"] {
+ 
+  margin-right: 5px;
+  
+}
+
+.cf::after {
+  
+  display: block;
+  clear: both;
+  content: "";
+  
+}
+
 .board {
  
-  background-color: #efefef;
-  border: 2px solid #ccc;
+  background-color: $white;
+  border: 2px solid $black;
   display: inline-block;
   vertical-align: middle;
   
@@ -15,11 +122,11 @@
 
   .board__square {
     
-    background-color: #efefef;
+    background-color: $white;
 
     &:nth-child(2n) {
 
-      background-color: #ccc; 
+      background-color: $gray; 
 
     }
 
@@ -30,11 +137,11 @@
 
     .board__square {
 
-      background-color: #ccc;
+      background-color: $gray;
 
       &:nth-child(2n) {
 
-        background-color: #efefef; 
+        background-color: $white; 
 
       }
 
@@ -86,7 +193,7 @@
   width: 40px;
   height: 40px;  
 
-  background-color: #ccc;
+  background-color: $gray;
 
   &:hover, &.board__square--highlight{
     
@@ -315,12 +422,12 @@
   top: 50%;
   left: 50%;
   transform: translateX(-50%) translateY(-50%);
-  padding: 20px;
+  padding: 10px 20px 20px;
   box-sizing: border-box;
   width: 400px;
   min-height: 100px;
   max-width: 100vw;
-  background: white;
+  background: $offBlack;
   box-shadow: 2px 2px 2px rgba(0,0,0,0.5);
   
 }
@@ -332,7 +439,14 @@
   label {
  
     display: block;
+    padding-bottom: 4px;
     
   }
+  
+}
+
+.modal__footer {
+  
+  text-align: center;
   
 }
