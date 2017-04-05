@@ -1,0 +1,22 @@
+<html>
+  <body>
+    <p id='messages'></p>
+    <script>
+      var HOST = location.origin.replace(/^http/, 'ws')
+      var ws = new WebSocket(HOST);
+      var el = document.getElementById('messages');
+      ws.onmessage = function (event) {
+        
+        var data = JSON.parse(event.data),
+            message = '';
+        
+        console.log( data );
+        
+        message = data.type + ': ' + data.message;
+        
+        el.innerHTML = el.innerHTML +  message + '<br />';
+      
+      };
+    </script>
+  </body>
+</html>
