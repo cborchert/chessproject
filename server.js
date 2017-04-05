@@ -4,6 +4,33 @@
 const _ = require('underscore');
 const express = require('express');
 const exphbs = require('express-handlebars');
+const hbs = exphbs.create({
+  defaultLayout: 'main',
+  helpers: {
+    forNumbers: (n, m, block)=>{ 
+      let accum = '';
+      if( n < m ) {
+        for(let i = n; i <= m; i++){
+          accum += block.fn(i);
+        }
+      } else {
+        for(let i = n; i >= m; i--){
+          accum += block.fn(i);
+        }
+      }
+      return accum;
+    },
+    rowLabels: (n, number, block)=>{ 
+      let alphabet = 'abcdefghijklmnopqrstuvwxyz';
+      let accum = '';
+      for(let i = 0; i < n; ++i) {
+        accum += block.fn(alphabet[i]+number);
+      }
+      return accum;
+    }
+  }
+  
+});
 
 const SocketServer = require('ws').Server;
 const path = require('path');
@@ -19,15 +46,15 @@ let userConnections = [],
     newGameId = 0;
 
 //Set up routes
-const router = express();
+const router = express()
+  .set('views', './templates')
+  .set('view engine', 'pug');
 router.get('/', (req, res) => res.render('home'));
 router.get('/:game', (req, res) => res.render('home', {game: req.params.game}) );
 router.use(express.static('public/'));
 
 //Set up app
 const server = express()
-  .engine('handlebars', exphbs({defaultLayout: 'main'}))
-  .set('view engine', 'handlebars')
   .use('/', router)
   .listen(PORT, () => console.log(`Listening on ${ PORT }`));
 
@@ -132,6 +159,7 @@ function newUserConnection(ws) {
   let message = { type: 'userIdCreated', message: id };
   
   ws.send(JSON.stringify(message));
+  getAvailableGames(ws);
   
   
 }
@@ -205,15 +233,19 @@ function userHandleMessage(ws, event) {
       //Send user the game
       sendGameState(gameId);
       
+      broadcastAvailableGames();
+      
     }
 
   } else if( data.type == 'joinGame' ) {
     
-    joinGame( data.gameId, userId );
+    let game = joinGame( data.gameId, userId ),
+        message = { type: 'initialGameState', message: game };
+    ws.send(JSON.stringify(message));
     
   } else if( data.type == 'updateGame' ) {
    
-    updateGame( data.gameId, userId, data.gameState );
+    updateGame( userId, data.gameState );
     
   } else if( data.type == 'getGameState' ) {
    
@@ -222,6 +254,10 @@ function userHandleMessage(ws, event) {
   } else if( data.type == 'getAllGames' ) {
    
     getAllGames(ws);
+    
+  } else if( data.type == 'getAvailableGames' ) {
+   
+    getAvailableGames(ws);
     
   }
   
@@ -274,7 +310,6 @@ function createGame(userId, options) {
   };
   
   game[options.playerColor+'Player'] = userId;
-  
   //Validate game info
   
   //Add game to game list
@@ -300,9 +335,6 @@ function sendGameState( gameId ) {
       message = { type: 'gameState', message: game.gameState },
       playerWhite = getConnectionFromUserId(game.wPlayer),
       playerBlack = getConnectionFromUserId(game.bPlayer);
-  
-  console.log(typeof playerWhite);
-  
   
   if( typeof playerWhite == 'object' && playerWhite !== null ) {
     
@@ -373,15 +405,30 @@ function joinGame( gameId, userId ) {
 
   });
   
-  return true;
+  users = _.map( users, (oldUser) => {
+        
+    if(oldUser.id === userId) {
+
+      oldUser.game = gameId;
+
+    }
+    
+    return oldUser;
+
+  });
+  
+  return game;
   
 }
 
-function updateGame( gameId, userId, gameState ) {
+function updateGame( userId, gameState ) {
   
   console.log('----------------------');
   console.log('updateGame');
-  let game = _.findWhere( games, {id: gameId} );
+  console.log(games);
+  let user = _.findWhere( users, {id: userId} ),
+      gameId = user.game,
+      game = _.findWhere( games, {id: gameId} );
   
   //player not in game
   if( game.wPlayer !== userId && game.bPlayer !== userId ) {
@@ -403,6 +450,7 @@ function updateGame( gameId, userId, gameState ) {
 
   });
   
+  console.log(games);
   sendGameState( gameId );
   
   return true;
@@ -436,6 +484,56 @@ function getAllGames( ws ) {
   console.log('getAllGames');
   console.log(games);
   let message = { type: 'games', message: games };
+  ws.send(JSON.stringify(message));
+  
+}
+
+function broadcastAvailableGames() {
+ 
+  console.log('----------------------');
+  console.log('broadcastAvailableGames');
+  let gamesToBroadcast = _.filter( games, (game)=>{
+    
+    if( game.bPlayer == null || game.wPlayer == null ) {
+     
+      return game;
+      
+    }
+    
+    return false;
+    
+  });
+  
+  console.log( gamesToBroadcast );
+  
+  let message = { type: 'availableGames', message: gamesToBroadcast };
+  wss.clients.forEach( (client) => {
+    
+    client.send( JSON.stringify(message) );
+    
+  });
+  
+}
+
+function getAvailableGames(ws) {
+ 
+  console.log('----------------------');
+  console.log('getAvailableGames');
+  let gamesToBroadcast = _.filter( games, (game)=>{
+    
+    if( game.bPlayer == null || game.wPlayer == null ) {
+     
+      return game;
+      
+    }
+    
+    return false;
+    
+  });
+  
+  console.log( gamesToBroadcast );
+  
+  let message = { type: 'availableGames', message: gamesToBroadcast };
   ws.send(JSON.stringify(message));
   
 }

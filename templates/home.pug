@@ -1,0 +1,114 @@
+html
+head
+  title Dark Chess
+  link(href="lib/css/board.css" type="text/css" rel="stylesheet")
+  script(src="lib/js/handlebars-v4.0.5.js")
+  script(src="lib/js/jquery-3.2.0.min.js" type="text/javascript")
+  script(src="lib/js/chess.min.js" type="text/javascript")
+  script(src="lib/js/script.js" type="text/javascript")
+body
+  #room
+    button.js-create-game Create Game
+    #room__games
+    
+  #game(style="display: none;")
+    .board
+      - var n = 8;
+      while n > 0
+        .board__row(data-row=n)
+          - var cols = 'abcdefgh';
+          - var m = 0;
+          while m < 8
+            .board__square(data-id=cols[m]+n)
+              .board__square__overlay.board__square__overlay--threat
+              .board__square__overlay.board__square__overlay--movement
+              .board__square__overlay.board__square__overlay--invisible
+              .board__square__overlay.board__piece
+              - m++
+          - n--
+
+    .captures
+      .captures__black
+      .captures__white
+
+    .modal-overlay
+      .modal
+        h1.modal__head
+        p.modal__body
+        .modal__game-options
+          label
+            input(type="checkbox" name="shade-invisible" checked)
+            .
+              Only show squares of player's legal moves (fog of war) 
+          label
+            input(type="checkbox" name="shade-threat" checked)
+            .
+              Highlight relevant threats to player's pieces
+          label
+            input(type="checkbox" name="opponent-invisible")
+            .
+              Opponent's pieces are always invisible
+          label
+            input(type="checkbox" name="opponent-pieces-anonymous")
+            .
+              Opponent's pieces are anonymous
+          label
+            input(type="checkbox" name="show-player-captures" checked)
+            .
+              Show player the pieces they've captured
+          label
+            input(type="checkbox" name="show-opponent-captures" checked)
+            .
+              Show player the pieces the opponent has captured
+          label
+            input(type="checkbox" name="announce-check-on-player" checked)
+            .
+              Announce when the player is in check
+          label
+            input(type="checkbox" name="announce-check-on-opponent" checked)
+            .
+              Announce when the opponent is in check
+          label
+            input(type="checkbox" name="play-as-white" checked)
+            .
+              I'll play as white
+        button.modal__action
+  
+  script#single-game-template(type="text/x-handlebars-template")
+    .
+      {{#each items}}
+    .entry
+      h1.
+        {{this.title}}
+      .body
+        h2 rules
+        ul.rules.
+          <li>Open seat: {{this.game.openSeat}}</li>
+          {{#if this.game.opponentInvisible}}
+            <li>Opponent Invisible</li>
+          {{/if}}
+          {{#if this.game.opponentPiecesAnonymous}}
+            <li>Opponent Pieces Anonymous</li>
+          {{/if}}
+          {{#if this.game.shadeInvisible}}
+            <li>Fog of War</li>
+          {{/if}}
+          {{#if this.game.shadeThreat}}
+            <li>Show Relevant Threats</li>
+          {{/if}}
+          {{#if this.game.showOpponentCaptures}}
+            <li>Show Opponent's Captures</li>
+          {{/if}}
+          {{#if this.game.showPlayerCaptures}}
+            <li>Show Player's Captures</li>
+          {{/if}}
+          {{#if this.game.announceCheckOnOpponent}}
+            <li>Announce Check On Opponent</li>
+          {{/if}}
+          {{#if this.game.announceCheckOnPlayer}}
+            <li>Announce Check On Player</li>
+          {{/if}}
+        .
+          <button class="js-join-game" data-game-id="{{this.game.id}}">Join</button>
+    .
+      {{/each}}
