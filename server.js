@@ -1,25 +1,40 @@
 'use strict';
 
+//includes and basics
 const _ = require('underscore');
 const express = require('express');
+const exphbs = require('express-handlebars');
+
 const SocketServer = require('ws').Server;
 const path = require('path');
 
 const PORT = process.env.PORT || 3000;
 const INDEX = path.join(__dirname, 'index.html');
 
-const server = express()
-  .use( (req, res) => res.sendFile(INDEX) )
-  .listen(PORT, () => console.log(`Listening on ${ PORT }`));
-
-const wss = new SocketServer({server});
-
+//other vars
 let userConnections = [],
     users = [],
     games = [],
     newUserId = 0,
     newGameId = 0;
 
+//Set up routes
+const router = express();
+router.get('/', (req, res) => res.render('home'));
+router.get('/:game', (req, res) => res.render('home', {game: req.params.game}) );
+router.use(express.static('public/'));
+
+//Set up app
+const server = express()
+  .engine('handlebars', exphbs({defaultLayout: 'main'}))
+  .set('view engine', 'handlebars')
+  .use('/', router)
+  .listen(PORT, () => console.log(`Listening on ${ PORT }`));
+
+//set up socket server
+const wss = new SocketServer({server: server});
+
+//handle socket server connection
 wss.on('connection', (ws) => {
 
   newUserConnection(ws);
