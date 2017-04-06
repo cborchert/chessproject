@@ -449,6 +449,12 @@ select {
   
 }
 
+.modal__head {
+ 
+  text-align: center;
+  
+}
+
 .modal__game-options {
   
   padding-bottom: 20px;
@@ -527,8 +533,6 @@ select {
   
   &.player--mate {
    
-    background: $lightRed;
-    
     .player__name:before {
      
       content: '\2021';
@@ -542,6 +546,8 @@ select {
   &:after {
       
     display: block;
+    //For the moment, we can't really use this
+    display: none;
     content: ' ';
     width: 10px;
     height: 10px;

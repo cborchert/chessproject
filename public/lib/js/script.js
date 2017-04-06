@@ -198,6 +198,8 @@ jQuery(document).ready( function($){
         if( this.shadeThreat ){ this.drawThreats(); }
         
       } 
+      
+      this.announceCheck();
 
     },
 
@@ -398,7 +400,7 @@ jQuery(document).ready( function($){
           this.selectedPiece = '';
           this.isSelectingMove = false;
           this.playerIsMoving = false;
-          this.announceCheck();
+//          this.announceCheck();
 
         } else if( theMove == null ) {
 
@@ -431,7 +433,7 @@ jQuery(document).ready( function($){
           this.playerIsPromoting = false;
           this.playerPromotionChoice = '';
           ws.send(JSON.stringify({type: 'updateGame', gameState: this.chess.fen()}));
-          this.announceCheck();
+          //this.announceCheck();
 
         } else {
 
@@ -447,17 +449,28 @@ jQuery(document).ready( function($){
     announceCheck: function() {
 
       var sidePlay = this.chess.turn() == 'w'?'White':'Black';
+      
+      $('.player').removeClass('player--check');
+      
+      if(this.chess.in_check()) {
+      
+        console.log('check!');
+        
+      }
 
-      if( this.chess.in_check() && this.announceCheckOnPlayer ) {
+      if( this.chess.in_check() && this.chess.turn() == this.playerColor && this.announceCheckOnPlayer ) {
 
         modal.prompt(sidePlay+' is in check', ' ');
+        $('.player__'+sidePlay.toLowerCase()).addClass('player--check');
+        $('.board__square[data-piece="k'+this.chess.turn()+'"]').attr('data-threat', 'true');
 
       }
 
-      if( this.chess.in_check() && this.announceCheckOnOpponent ) {
+      if( this.chess.in_check()  && this.chess.turn() !== this.playerColor && this.announceCheckOnOpponent ) {
 
         modal.prompt(sidePlay+' is in check', ' ' );
-
+        $('.player__'+sidePlay.toLowerCase()).addClass('player--check');
+        
       }
 
     },
@@ -475,11 +488,15 @@ jQuery(document).ready( function($){
         this.shadeInvisible = false;
         this.drawBoard();
 
-        var sideWin = this.chess.turn() == 'b'?'White':'Black';
+        var sideWin = this.chess.turn() == 'b'?'White':'Black',
+            sidePlay = this.chess.turn() == 'w'?'white':'black';
 
         if( this.chess.in_checkmate() ) {
 
-          modal.prompt(sideWin + ' Wins!', 'Checkmate', ' ');
+          modal.prompt(sideWin + ' Wins!', ' ', ' ');
+          $('.player').removeClass('player--check');
+          $('.player__'+sidePlay).addClass('player--mate');
+          
 
         } else if( this.chess.in_stalemate() ) {
 
@@ -573,9 +590,9 @@ jQuery(document).ready( function($){
           if(promotion !== null){
 
             game.playerPromotionChoice = promotion;
-            game.moveStep(null);
             modal.close();
-
+            game.moveStep(null);
+            
           }
 
         }
@@ -596,10 +613,10 @@ jQuery(document).ready( function($){
 
     prompt: function( headerText, bodyText ) {
 
-      var $head = this.$modal.find('.modal__head'),
-          $body = this.$modal.find('.modal__body'),
-          $action = this.$modal.find('.modal__action'),
-          $gameOptions= this.$modal.find('.modal__game-options');
+      var $head = modal.$modal.find('.modal__head'),
+          $body = modal.$modal.find('.modal__body'),
+          $action = modal.$modal.find('.modal__action'),
+          $gameOptions= modal.$modal.find('.modal__game-options');
 
       $gameOptions.hide();
       $head.html(headerText);
@@ -607,7 +624,7 @@ jQuery(document).ready( function($){
       $action.html('Close');
       $action.data('action','close');
 
-      this.open();
+      modal.open();
 
     },
 
@@ -712,13 +729,13 @@ jQuery(document).ready( function($){
 
     close: function() {
 
-      this.$overlay.removeClass('modal-overlay--open');
+      modal.$overlay.removeClass('modal-overlay--open');
 
     },
 
     open: function() {
 
-      this.$overlay.addClass('modal-overlay--open');
+      modal.$overlay.addClass('modal-overlay--open');
 
     },
 
