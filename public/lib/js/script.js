@@ -82,9 +82,9 @@ jQuery(document).ready( function($){
         
         if( this.shadeInvisible ) {
           
-          this.chess.move({from: 'a2', to: 'a3'});
+//          this.chess.move({from: 'a2', to: 'a3'});
           this.drawBoard();
-          this.chess.undo();
+//          this.chess.undo();
           
         } else {
          
@@ -110,6 +110,9 @@ jQuery(document).ready( function($){
 
     drawBoard: function() {
 
+      $('#game').removeClass('game--turn-w');
+      $('#game').removeClass('game--turn-b');
+      $('#game').addClass('game--turn-'+this.chess.turn());
       //console.log('drawing board');
       var board = this.chess.board(),
           playerColor = this.playerColor;

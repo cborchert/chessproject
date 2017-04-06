@@ -4,11 +4,16 @@ $pure: #fff;
 $white: #eee;
 $gray: #ccc;
 $black: #323d49;
+$deepBlack: #111;
 $offBlack: #34495e;
 $blue: #2980b9;
 $lightBlue: #3498db;
 $green: #27ae60;
 $lightGreen: #2ecc71;
+$red: #c0392b;
+$lightRed: #e74c3c;
+$orange: #e67e22;
+
 
 body {
 
@@ -58,8 +63,8 @@ body {
   
   &--big {
    
-    font-size: 16px;
-    padding: 20px 40px
+    font-size: 22px;
+    padding: 14px 40px;
     
   }
   
@@ -97,6 +102,16 @@ input[type="checkbox"] {
   
 }
 
+select {
+ 
+  width: 100%;
+  font-size: 14px;
+  outline: none;
+  border-radius: 0;
+  border: 0;
+  
+}
+
 .cf::after {
   
   display: block;
@@ -108,11 +123,12 @@ input[type="checkbox"] {
 .board {
  
   background-color: $white;
-  border: 2px solid $black;
   display: inline-block;
   vertical-align: middle;
-  
   transition: transform 1800ms;
+  box-shadow: 2px 2px 2px rgba(0,0,0,0.2);
+//  border-top: 4px solid $black;
+//  border-bottom: 4px solid $black;
   
 }
 
@@ -154,6 +170,7 @@ input[type="checkbox"] {
 .board[data-player-view="black"] {
   
   transform: rotateZ(180deg);
+  box-shadow: -2px -2px 2px rgba(0,0,0,0.2);
   
   .board__piece {
    
@@ -448,5 +465,134 @@ input[type="checkbox"] {
 .modal__footer {
   
   text-align: center;
+  
+}
+
+.players {
+ 
+  
+}
+
+.player {
+ 
+  display: inline-block;
+  min-width: 155px;
+  padding: 10px;
+  box-sizing: border-box;
+  margin: 10px 10px 10px 0;
+  font-weight: bold;
+  border-bottom: 4px solid transparent;
+  border-top: 4px solid transparent;
+  box-shadow: 2px 2px 2px rgba(0,0,0,0.2);
+  position: relative;
+  
+  &__white {
+   
+    background: $white;
+    color: $deepBlack;
+    border-bottom: 4px solid $white;
+    border-top: 4px solid $white;
+    
+  }
+  
+  &__black {
+   
+    background: $deepBlack;
+    color: $white;
+    border-bottom: 4px solid $deepBlack;
+    border-top: 4px solid $deepBlack;
+    
+  }
+  
+  &__name {
+   
+    display: block;
+    max-width: 116px;
+    height: 18px;
+    overflow: hidden;
+    
+  }
+  
+  &.player--check {
+   
+    .player__name:before {
+     
+      content: '\2020';
+      color: $orange;
+      margin-right: 4px;
+      
+    }
+    
+  }
+  
+  &.player--mate {
+   
+    background: $lightRed;
+    
+    .player__name:before {
+     
+      content: '\2021';
+      color: $red;
+      margin-right: 4px;
+      
+    }
+    
+  }
+  
+  &:after {
+      
+    display: block;
+    content: ' ';
+    width: 10px;
+    height: 10px;
+    background-color: $red;
+    margin: 0;
+    border-radius: 100%;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    right: 10px;
+    
+  
+  }
+  
+  &--active:after {
+    
+    background-color: $green;
+    
+  }
+
+  
+}
+
+#game.game--turn-w {
+  
+  .board {
+  
+//    border-bottom: 4px solid $blue;
+    
+  }
+  
+  .player__white {
+   
+    border-bottom: 4px solid $blue;
+    
+  }
+  
+}
+
+#game.game--turn-b {
+  
+  .player__black {
+   
+    border-bottom: 4px solid $blue;
+    
+  }
+  
+  .board {
+    
+//    border-top: 4px solid $blue;
+    
+  }
   
 }
