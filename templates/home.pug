@@ -4,6 +4,7 @@ head
   link(href="lib/css/board.css" type="text/css" rel="stylesheet")
   link(href="https://fonts.googleapis.com/css?family=Droid+Sans:400,700" rel="stylesheet")
   script(src="lib/js/handlebars-v4.0.5.js")
+  script(src="lib/js/cookies.js")
   script(src="lib/js/jquery-3.2.0.min.js" type="text/javascript")
   script(src="lib/js/chess.min.js" type="text/javascript")
   script(src="lib/js/script.js" type="text/javascript")
@@ -17,9 +18,9 @@ body
   #game(style="display: none;")
     .players
       .player.player__white
-        span.player__name White
+        span.player__name [empty]
       .player.player__black
-        span.player__name Black
+        span.player__name [empty]
     .board
       - var n = 8;
       while n > 0
@@ -39,49 +40,56 @@ body
       .captures__black
       .captures__white
 
-    .modal-overlay
-      .modal
-        h1.modal__head
-        p.modal__body
-        .modal__game-options
-          label
-            input(type="checkbox" name="shade-invisible" checked)
-            .
-              Only show squares of player's legal moves (fog of war) 
-          label
-            input(type="checkbox" name="shade-threat" checked)
-            .
-              Highlight relevant threats to player's pieces
-          label
-            input(type="checkbox" name="opponent-invisible")
-            .
-              Opponent's pieces are always invisible
-          label
-            input(type="checkbox" name="opponent-pieces-anonymous")
-            .
-              Opponent's pieces are anonymous
-          label
-            input(type="checkbox" name="show-player-captures" checked)
-            .
-              Show player the pieces they've captured
-          label
-            input(type="checkbox" name="show-opponent-captures" checked)
-            .
-              Show player the pieces the opponent has captured
-          label
-            input(type="checkbox" name="announce-check-on-player" checked)
-            .
-              Announce when the player is in check
-          label
-            input(type="checkbox" name="announce-check-on-opponent" checked)
-            .
-              Announce when the opponent is in check
-          label
-            input(type="checkbox" name="play-as-white" checked)
-            .
-              I'll play as white
-        .modal__footer
-          button.modal__action.btn.btn--big
+  .modal-overlay
+    .modal
+      h1.modal__head
+      p.modal__body
+      .modal__game-name
+        h1.user__greeting  Hi there, <span class="user__name">stranger</span>!
+        p What should we call you?
+        label 
+          input.user__name__input(type="text" placehoder="Your name" value="Anonymous")
+        p 
+          em You can change your name during a game by clicking on your name-plate.
+      .modal__game-options
+        label
+          input(type="checkbox" name="shade-invisible" checked)
+          .
+            Only show squares of player's legal moves (fog of war) 
+        label
+          input(type="checkbox" name="shade-threat" checked)
+          .
+            Highlight relevant threats to player's pieces
+        label
+          input(type="checkbox" name="opponent-invisible")
+          .
+            Opponent's pieces are always invisible
+        label
+          input(type="checkbox" name="opponent-pieces-anonymous")
+          .
+            Opponent's pieces are anonymous
+        label
+          input(type="checkbox" name="show-player-captures" checked)
+          .
+            Show player the pieces they've captured
+        label
+          input(type="checkbox" name="show-opponent-captures" checked)
+          .
+            Show player the pieces the opponent has captured
+        label
+          input(type="checkbox" name="announce-check-on-player" checked)
+          .
+            Announce when the player is in check
+        label
+          input(type="checkbox" name="announce-check-on-opponent" checked)
+          .
+            Announce when the opponent is in check
+        label
+          input(type="checkbox" name="play-as-white" checked)
+          .
+            I'll play as white
+      .modal__footer
+        button.modal__action.btn.btn--big
   
   script#single-game-template(type="text/x-handlebars-template")
     .

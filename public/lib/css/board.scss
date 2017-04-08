@@ -96,6 +96,18 @@ body {
   
 }
 
+input[type="text"] {
+
+  font-size: 18px;
+  border: 0;
+  background: $white;
+  border-radius: 0;
+  color: $black;
+  font-family: 'Droid Sans', sans-serif; 
+  padding: 10px 15px;
+  
+}
+
 input[type="checkbox"] {
  
   margin-right: 5px;
@@ -474,6 +486,12 @@ select {
   
 }
 
+.modal__game-name {
+ 
+  text-align: center;
+  
+}
+
 .players {
  
   
@@ -546,8 +564,6 @@ select {
   &:after {
       
     display: block;
-    //For the moment, we can't really use this
-    display: none;
     content: ' ';
     width: 10px;
     height: 10px;
@@ -568,6 +584,12 @@ select {
     
   }
 
+  
+}
+
+.player__me {
+ 
+  cursor: pointer;
   
 }
 

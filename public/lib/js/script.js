@@ -1,11 +1,4 @@
 jQuery(document).ready( function($){ 
-
- var HOST = location.origin.replace(/^http/, 'ws'),
-     ws = new WebSocket(HOST),
-     source   = $("#single-game-template").html(),
-     template = Handlebars.compile(source),
-     context = {items: []},
-     userId = false;
   
   var game = {
 
@@ -25,80 +18,96 @@ jQuery(document).ready( function($){
     playerColor: 'w',
     playerNeedsToPromote: false,
     playerPromotionChoice: '',
+    playerName: 'stranger',
     captures: [],
     showOpponentCaptures: true,
     showPlayerCaptures: true,
     announceCheckOnOpponent: true,
     announceCheckOnPlayer: true,
     gameStarted: false,
+    bName: '[empty]',
+    wName: '[empty]',
+    bOnline: false,
+    wOnline: false,
+    isInit: false,
 
     init: function() {
 
       game.drawBoard();
 
-      $('.board__square').click( function(e){
+      if( !game.isInit ) {
+        $('.board__square').click( function(e){
 
-        var squareId = $(this).attr('data-id');
-        game.moveStep( squareId );
+          e.preventDefault();
+          var squareId = $(this).attr('data-id');
+          game.moveStep( squareId );
 
-      });
+        });
+        
+        $('#game').on('click', '.player__me', function(e) {
+        
+          e.preventDefault();
+          modal.userNamePrompt();
+          
+        });
+        
+        game.isInit = true;
+      }
 
     },
     
     getOptions: function() {
       
       return { 
-        shadeInvisible: this.shadeInvisible,
-        shadeThreat: this.shadeThreat,
-        opponentInvisible: this.opponentInvisible,
-        opponentPiecesAnonymous: this.opponentPiecesAnonymous,
-        playerColor: this.playerColor,
-        showOpponentCaptures: this.showOpponentCaptures,
-        showPlayerCaptures: this.showPlayerCaptures,
-        announceCheckOnOpponent: this.announceCheckOnOpponent,
-        announceCheckOnPlayer: this.announceCheckOnPlayer,
+        shadeInvisible: game.shadeInvisible,
+        shadeThreat: game.shadeThreat,
+        opponentInvisible: game.opponentInvisible,
+        opponentPiecesAnonymous: game.opponentPiecesAnonymous,
+        playerColor: game.playerColor,
+        showOpponentCaptures: game.showOpponentCaptures,
+        showPlayerCaptures: game.showPlayerCaptures,
+        announceCheckOnOpponent: game.announceCheckOnOpponent,
+        announceCheckOnPlayer: game.announceCheckOnPlayer,
       };
       
     },
     
     setOptions: function( gameOptions ) {
       
-      this.shadeInvisible = gameOptions.shadeInvisible;
-      this.shadeThreat = gameOptions.shadeThreat;
-      this.opponentInvisible = gameOptions.opponentInvisible;
-      this.opponentPiecesAnonymous = gameOptions.opponentPiecesAnonymous;
-      this.showOpponentCaptures = gameOptions.showOpponentCaptures;
-      this.showPlayerCaptures = gameOptions.showPlayerCaptures;
-      this.announceCheckOnOpponent = gameOptions.announceCheckOnOpponent;
-      this.announceCheckOnPlayer = gameOptions.announceCheckOnPlayer;
+      console.log( 'setting up game' );
+      console.log( userId );
       
-      this.playerColor = '';
+      game.shadeInvisible = gameOptions.shadeInvisible;
+      game.shadeThreat = gameOptions.shadeThreat;
+      game.opponentInvisible = gameOptions.opponentInvisible;
+      game.opponentPiecesAnonymous = gameOptions.opponentPiecesAnonymous;
+      game.showOpponentCaptures = gameOptions.showOpponentCaptures;
+      game.showPlayerCaptures = gameOptions.showPlayerCaptures;
+      game.announceCheckOnOpponent = gameOptions.announceCheckOnOpponent;
+      game.announceCheckOnPlayer = gameOptions.announceCheckOnPlayer;
+      game.playerColor = '';
+      game.wName = gameOptions.wName;
+      game.bName = gameOptions.bName;
+      game.wOnline = gameOptions.wOnline;
+      game.bOnline = gameOptions.bOnline;
       
-      game.init();
+      console.log('me: ' + userId + ' black: '+gameOptions.bPlayer + ' white: '+ gameOptions.wPlayer);
+      
+      
       
       if( gameOptions.bPlayer == userId) {
         
-        this.playerColor = 'b';
-        
-        if( this.shadeInvisible ) {
-          
-//          this.chess.move({from: 'a2', to: 'a3'});
-          this.drawBoard();
-//          this.chess.undo();
-          
-        } else {
-         
-          this.drawBoard();
-        
-        }
+        game.playerColor = 'b';
         
         
       } else if( gameOptions.wPlayer == userId ) {
         
-        this.playerColor = 'w';
-        this.drawBoard();
+        game.playerColor = 'w';
         
       } 
+      game.init();
+      game.chess.load(gameOptions.gameState);
+     
     
     },
     
@@ -110,12 +119,46 @@ jQuery(document).ready( function($){
 
     drawBoard: function() {
 
+      
       $('#game').removeClass('game--turn-w');
       $('#game').removeClass('game--turn-b');
       $('#game').addClass('game--turn-'+this.chess.turn());
       //console.log('drawing board');
       var board = this.chess.board(),
           playerColor = this.playerColor;
+      
+      //Set up user names
+      //Names!
+      $('.player__white .player__name').html(game.wName);
+      $('.player__black .player__name').html(game.bName);
+      
+      //WHO AM IIIIII?
+      $('.player').removeClass('player__me');
+      
+      if( playerColor == 'w' ) {
+        
+        $('.player__white').addClass('player__me');
+        
+      }
+      
+      if( playerColor == 'b' ) {
+        
+        $('.player__black').addClass('player__me');
+        
+      }
+      
+      //Active status
+      $('.player').removeClass('player--active');
+      if( game.bOnline ) {
+        
+        $('.player__black').addClass('player--active') 
+        
+      }
+      if( game.wOnline ) {
+        
+        $('.player__white').addClass('player--active') 
+        
+      }
 
       //Clear the board
       $('.board__square').attr('data-piece', '');
@@ -606,6 +649,14 @@ jQuery(document).ready( function($){
           ws.send(JSON.stringify({ type: 'createGame', gameOptions:game.getOptions() }));
 
         }
+        
+        if( action == 'save-user-name' ) {
+          
+          game.playerName = modal.$modal.find('.user__name__input').val();
+          ws.send(JSON.stringify({ type: 'changeName', name:game.playerName }));
+          modal.close()
+          
+        }
 
       });
 
@@ -616,8 +667,10 @@ jQuery(document).ready( function($){
       var $head = modal.$modal.find('.modal__head'),
           $body = modal.$modal.find('.modal__body'),
           $action = modal.$modal.find('.modal__action'),
-          $gameOptions= modal.$modal.find('.modal__game-options');
+          $gameOptions= modal.$modal.find('.modal__game-options'),
+          $userNamePrompt = modal.$modal.find('.modal__game-name');
 
+      $userNamePrompt.hide();
       $gameOptions.hide();
       $head.html(headerText);
       $body.html(bodyText);
@@ -630,12 +683,14 @@ jQuery(document).ready( function($){
 
     promotionPrompt: function() {
 
-      var $head = this.$modal.find('.modal__head'),
-          $body = this.$modal.find('.modal__body'),
-          $action = this.$modal.find('.modal__action'),
-          $gameOptions= this.$modal.find('.modal__game-options');
+      var $head = modal.$modal.find('.modal__head'),
+          $body = modal.$modal.find('.modal__body'),
+          $action = modal.$modal.find('.modal__action'),
+          $gameOptions= modal.$modal.find('.modal__game-options'),
+          $userNamePrompt = modal.$modal.find('.modal__game-name');
 
       $gameOptions.hide();
+      $userNamePrompt.hide();
       $head.html('Promote your pawn');
       $body.html('');
 
@@ -662,19 +717,41 @@ jQuery(document).ready( function($){
       $action.html('Select');
       $action.data('action','promote');
 
-      this.open();
+      modal.open();
 
+    },
+    
+    userNamePrompt: function() {
+      
+      var $head = modal.$modal.find('.modal__head'),
+          $body = modal.$modal.find('.modal__body'),
+          $action = modal.$modal.find('.modal__action'),
+          $gameOptions= modal.$modal.find('.modal__game-options'),
+          $userNamePrompt = modal.$modal.find('.modal__game-name');
+
+      $gameOptions.hide();
+      $userNamePrompt.show();
+      modal.$modal.find('.user__name').html(game.playerName);
+      modal.$modal.find('.user__name__input').val(game.playerName);
+      $head.html('');
+      $body.html('');
+      $action.html('Save setting');
+      $action.data('action','save-user-name');
+      modal.open();
+      
     },
 
     optionsPrompt: function() {
 
       game.drawBoard();
 
-      var $head = this.$modal.find('.modal__head'),
-          $body = this.$modal.find('.modal__body'),
-          $action = this.$modal.find('.modal__action'),
-          $gameOptions= this.$modal.find('.modal__game-options');
+      var $head = modal.$modal.find('.modal__head'),
+          $body = modal.$modal.find('.modal__body'),
+          $action = modal.$modal.find('.modal__action'),
+          $gameOptions = modal.$modal.find('.modal__game-options'),
+          $userNamePrompt = modal.$modal.find('.modal__game-name');
 
+      $userNamePrompt.hide();
       $gameOptions.show();
       $head.html('Game Options');
       $body.html('');
@@ -702,27 +779,27 @@ jQuery(document).ready( function($){
 
       }
 
-      this.$modal.on('click', 'input[name="opponent-autoplay"]', function(e) { 
+      modal.$modal.on('click', 'input[name="opponent-autoplay"]', function(e) { 
 
         toggleOption(e, $(e.target).prop('checked'), 'opponentAutoplay');
         toggleOption(e, !$(e.target).prop('checked'), 'alwaysDraw');
 
       });
-      this.$modal.on('click', 'input[name="shade-invisible"]', function(e) {  toggleOption(e, $(e.target).prop('checked'), 'shadeInvisible'); });
-      this.$modal.on('click', 'input[name="shade-threat"]', function(e) {  toggleOption(e, $(e.target).prop('checked'), 'shadeThreat'); });
-      this.$modal.on('click', 'input[name="opponent-invisible"]', function(e) {  toggleOption(e, $(e.target).prop('checked'), 'opponentInvisible'); });
-      this.$modal.on('click', 'input[name="opponent-pieces-anonymous"]', function(e) {  toggleOption(e, $(e.target).prop('checked'), 'opponentPiecesAnonymous'); });
-      this.$modal.on('click', 'input[name="show-opponent-captures"]', function(e) {  toggleOption(e, $(e.target).prop('checked'), 'showOpponentCaptures'); });
-      this.$modal.on('click', 'input[name="show-player-captures"]', function(e) {  toggleOption(e, $(e.target).prop('checked'), 'showPlayerCaptures'); });
-      this.$modal.on('click', 'input[name="announce-check-on-player"]', function(e) {  toggleOption(e, $(e.target).prop('checked'), 'announceCheckOnPlayer'); });
-      this.$modal.on('click', 'input[name="announce-check-on-opponent"]', function(e) {  toggleOption(e, $(e.target).prop('checked'), 'announceCheckOnOpponent'); });
-      this.$modal.on('click', 'input[name="play-as-white"]', function(e) {  
+      modal.$modal.on('click', 'input[name="shade-invisible"]', function(e) {  toggleOption(e, $(e.target).prop('checked'), 'shadeInvisible'); });
+      modal.$modal.on('click', 'input[name="shade-threat"]', function(e) {  toggleOption(e, $(e.target).prop('checked'), 'shadeThreat'); });
+      modal.$modal.on('click', 'input[name="opponent-invisible"]', function(e) {  toggleOption(e, $(e.target).prop('checked'), 'opponentInvisible'); });
+      modal.$modal.on('click', 'input[name="opponent-pieces-anonymous"]', function(e) {  toggleOption(e, $(e.target).prop('checked'), 'opponentPiecesAnonymous'); });
+      modal.$modal.on('click', 'input[name="show-opponent-captures"]', function(e) {  toggleOption(e, $(e.target).prop('checked'), 'showOpponentCaptures'); });
+      modal.$modal.on('click', 'input[name="show-player-captures"]', function(e) {  toggleOption(e, $(e.target).prop('checked'), 'showPlayerCaptures'); });
+      modal.$modal.on('click', 'input[name="announce-check-on-player"]', function(e) {  toggleOption(e, $(e.target).prop('checked'), 'announceCheckOnPlayer'); });
+      modal.$modal.on('click', 'input[name="announce-check-on-opponent"]', function(e) {  toggleOption(e, $(e.target).prop('checked'), 'announceCheckOnOpponent'); });
+      modal.$modal.on('click', 'input[name="play-as-white"]', function(e) {  
 
         toggleOption(e, $(e.target).prop('checked')?'w':'b', 'playerColor'); 
 
       });
 
-      this.open();
+      modal.open();
 
 
     },
@@ -741,6 +818,24 @@ jQuery(document).ready( function($){
 
   }
   
+  var HOST = location.origin.replace(/^http/, 'ws'),
+      userId = false,
+      ws = new WebSocket(HOST),
+      source   = $("#single-game-template").html(),
+      template = Handlebars.compile(source),
+      context = {items: []};
+  
+  console.log('this is happening more than once');
+  
+  ws.onclose = function(event) {
+  
+    console.log(event);
+    $('#game').hide();
+    $('#room').hide();
+    modal.prompt('Disconnection', 'The connection with the server has been closed. If you opened the game in another window, you can continue to play there, otherwise, reload the page.');
+    
+  };
+  
   ws.onmessage = function (event) {
 
     var data = JSON.parse(event.data),
@@ -749,23 +844,50 @@ jQuery(document).ready( function($){
     console.log( data );
     if( data.type == 'gameState' ) {
       
-      game.chess.load(data.message);
+      console.log(' getting game state ');
+      
+      console.log( data.game );
+      $('#game').show();
+      $('#room').hide();
+      game.setOptions(data.game);
       game.gameStep();
       
     } else if( data.type == 'userIdCreated' ) {
       
       userId = data.message;
+      Cookies.set('chessUser', userId );
+      console.log('created user ' + userId);
+      modal.userNamePrompt();
+      
+    } else if( data.type == 'userLoaded' ) {
+      
+      userId = data.id;
+      Cookies.set('chessUser', userId );
+      console.log('connected as '+userId);
+      
+      console.log( data.game );
+      
+      if( data.game !== false ) {
+       
+        game.setOptions( data.game );
+        
+      }
+      
       
     } else if( data.type == 'availableGames' ) {
       
       context.items = [];
-      data.message.forEach( function( game ){
+      data.message.forEach( function( openGame ){
         
-        game.openSeat = 'black';
-        if( game.wPlayer == null) {
-          game.openSeat = 'white';
+        openGame.openSeat = 'black';
+        openGame.creator = openGame.wName;
+        if( openGame.wPlayer == null) {
+          
+          openGame.openSeat = 'white';
+          openGame.creator = openGame.bName;
+        
         }
-        context.items.push({title: 'Play as '+game.openSeat, game: game});
+        context.items.push({title: 'Play as '+openGame.openSeat+' against '+openGame.creator, game: openGame, gameCreator: openGame.creator });
         
       });
       
@@ -774,6 +896,7 @@ jQuery(document).ready( function($){
       
     } else if( data.type == 'initialGameState' ) {
      
+      console.log('getting initial game state');
       if( data.message === false ) {
        
         //deal with error
@@ -783,9 +906,21 @@ jQuery(document).ready( function($){
         
         $('#game').show();
         $('#room').hide();
+        console.log( data.message );
         game.setOptions(data.message);
         
       }
+      
+    } else if( data.type == 'requestUserId' ) {
+     
+      userId = Cookies.get('chessUser');
+      console.log('requesting user id');
+      console.log(userId);
+      ws.send(JSON.stringify({ type: 'loadUser', userId: userId }));
+      
+    } else if( data.type == 'forceDisconnection' ) {
+     
+      ws.close();
       
     }
 
@@ -806,6 +941,5 @@ jQuery(document).ready( function($){
   });
   
   modal.init();
-  
   
 });

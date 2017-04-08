@@ -41,9 +41,7 @@ const INDEX = path.join(__dirname, 'index.html');
 //other vars
 let userConnections = [],
     users = [],
-    games = [],
-    newUserId = 0,
-    newGameId = 0;
+    games = [];
 
 //Set up routes
 const router = express()
@@ -64,7 +62,8 @@ const wss = new SocketServer({server: server});
 //handle socket server connection
 wss.on('connection', (ws) => {
 
-  newUserConnection(ws);
+  let message = { type: 'requestUserId' };
+  ws.send(JSON.stringify(message));
   
   ws.on('close', () => { userDisconnection(ws); });
   
@@ -94,11 +93,43 @@ function getUserGame(userId) {
   
   console.log('----------------------');
   console.log('getUserGame');
-  let user = _.findWhere( users, {id: userId} );
+  
+  
+  let user = _.findWhere( users, {id: userId} ),
+      game;
+  console.log(userId);
+  console.log(users);
+  console.log(user);
   
   if(typeof user == 'object' && user !== null) {
    
-    return user.game;
+//    game = _.findWhere( games, {wPlayer: userId} );
+//    if( typeof game == 'undefined' ) {
+//      
+//      game = _.findWhere( games, {bPlayer: userId} );
+//      
+//      if( typeof game == 'undefined' ) {
+//       
+//        return false;
+//        
+//      }
+//      
+//    } else {
+//      
+//      return game;
+//      
+//    }
+    
+    if( typeof user.game == 'undefined' || user.game == null || user.game === false ) {
+      
+      return false;
+      
+    } else {
+      
+      return user.game;
+      
+    }
+    
     
   }
   
@@ -148,19 +179,96 @@ function newUserConnection(ws) {
   
   console.log('----------------------');
   console.log('newUserConnection');
-  let id = newUserId;
-  newUserId ++;
+  let id = 'user_'+Date.now()+'_'+Math.floor((Math.random() * 1000) + 1),
+      name = 'Anonymous';
   
-  users.push({ id: id, game: null });
+  users.push({ id: id, game: null, name: name, online: true });
   
   userConnections.push({ id: id, connection: ws });
   console.log(userConnections);
   
   let message = { type: 'userIdCreated', message: id };
-  
   ws.send(JSON.stringify(message));
+  
+  message = { type: 'userLoaded', id: id, game: false };
+  ws.send(JSON.stringify(message));
+  
   getAvailableGames(ws);
   
+  setPlayerOnlineStatus(id, true);
+  
+}
+
+function loadUserConnection(ws, userId) {
+  
+  console.log('----------------------');
+  console.log('loadUserConnection');
+  
+  //disconnect other user connections
+  let oldConnection = _.findWhere( userConnections, {id: userId});
+  
+  
+  console.log(users);
+  
+  console.log('oldConnection');
+  console.log(oldConnection);
+  
+  if( typeof oldConnection !== 'undefined' ) {
+  
+    disconnectUser( oldConnection.connection );
+    userConnections = _.map( userConnections, (connection) => {
+      
+      if( connection.id == userId ) {
+       
+        connection.connection = ws;
+        
+      }
+      
+      return connection;
+      
+    });
+                            
+  } else {
+  
+    userConnections.push({ id: userId, connection: ws });
+  
+  }
+  
+  console.log(userConnections);
+  console.log(users);
+  let gameId = getUserGame(userId),
+      game = false;
+  
+  if( typeof gameId !== 'undefined' && gameId !== false && gameId !== null) {
+    
+    game = _.findWhere( games, {id: gameId} );
+    if( typeof game == 'undefined' ) {
+      
+      game = false;
+      
+    }
+  
+  }
+  
+  let message = { type: 'userLoaded', id: userId, game: game };
+  ws.send(JSON.stringify(message));
+  
+  if( typeof gameId !== 'undefined' && gameId !== false && gameId !== null) {
+    
+//    sendGameState( game.id );
+    sendGameState( gameId );
+    
+  }
+  
+  getAvailableGames(ws);
+  setPlayerOnlineStatus(userId, true);
+  
+}
+
+function disconnectUser( ws ) {
+  
+  let message = { type: 'forceDisconnection' };
+  ws.send(JSON.stringify(message));
   
 }
   
@@ -168,23 +276,17 @@ function userDisconnection(ws) {
  
   console.log('----------------------');
   console.log('userDisconnection');
-  //Trim user from users array
-  users = _.reject( users, (user) => {
-    
-    return user.id == getUserIdFromConnection(ws);
-
-  });
+  
+  let userId = getUserIdFromConnection(ws);
 
   //Trim user from user connections array
   userConnections = _.reject( userConnections, (user) => {
 
-    return user.id == getUserIdFromConnection(ws);
+    return user.id == userId;
 
   });
 
-  //Trim user from games
-  //Set game state 
-  
+  setPlayerOnlineStatus( userId, false);
   
 }
 
@@ -200,16 +302,43 @@ function userHandleMessage(ws, event) {
   //update game state
   //get game state
   
-  if ( data.type == 'createGame' ) {  
+  if ( data.type == 'loadUser' ) {
+    
+    console.log( users );
+    
+    let user = _.findWhere( users, {id: data.userId} );
+    
+    console.log('loadUser');
+    console.log( users );
+    console.log( data.userId );
+    console.log( user );
+    
+    //Check the user id
+    if( typeof data.userId == 'undefined' || typeof user == 'undefined' ) {
+    
+      //If user id does not exist
+      newUserConnection(ws);
+      
+    } else {
+      
+      //Else, send user to current game
+      loadUserConnection(ws, data.userId);
+      
+    }
+    
+  } else if ( data.type == 'createGame' ) {  
     
     let gameId = createGame( userId, data.gameOptions );
+    console.log('gameId '+gameId);
     
     if( gameId === false ) {
      
+      console.log('could not create game');
       //handle error
       
     } else {
       
+      console.log('users');
       console.log(users);
       //Assign game id to user
       users = _.map( users, (user) => {
@@ -220,6 +349,7 @@ function userHandleMessage(ws, event) {
         
         }
         
+        console.log(user);
         return user;
         
       });
@@ -259,6 +389,10 @@ function userHandleMessage(ws, event) {
    
     getAvailableGames(ws);
     
+  } else if( data.type == 'changeName' ) {
+   
+    changeUserName( userId, data.name);
+    
   }
   
 }
@@ -269,9 +403,9 @@ function createGame(userId, options) {
   console.log('----------------------');
   console.log('createGame');
   //Initialize game
-  let gameId = newGameId,
-      isError = false;
-  newGameId ++;
+  let gameId = 'game_'+Date.now()+'_'+Math.floor((Math.random() * 1000) + 1),
+      isError = false,
+      user = _.findWhere( users, {id: userId} );
 
   if( typeof options == 'undefined' ) {
     
@@ -305,11 +439,17 @@ function createGame(userId, options) {
     announceCheckOnPlayer: options.announceCheckOnPlayer,
     gameState: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
     wPlayer: null,
-    bPlayer: null
+    bPlayer: null,
+    wOnline: false,
+    bOnline: false,
+    wName: '[empty]',
+    bName: '[empty]'
     
   };
   
   game[options.playerColor+'Player'] = userId;
+  game[options.playerColor+'Name'] = user.name;
+  game[options.playerColor+'Online'] = true;
   //Validate game info
   
   //Add game to game list
@@ -321,7 +461,7 @@ function createGame(userId, options) {
     
   }
   
-  
+  console.log( games );
   return gameId;
   
 }
@@ -332,7 +472,7 @@ function sendGameState( gameId ) {
   console.log('sendGameState');
  
   let game = _.findWhere( games, {id: gameId} ),
-      message = { type: 'gameState', message: game.gameState },
+      message = { type: 'gameState', game: game },
       playerWhite = getConnectionFromUserId(game.wPlayer),
       playerBlack = getConnectionFromUserId(game.bPlayer);
   
@@ -356,12 +496,14 @@ function joinGame( gameId, userId ) {
   console.log('----------------------');
   console.log('joinGame');
   let game = _.findWhere( games, {id: gameId} ),
+      user = _.findWhere( users, {id: userId} ),
       color = 'w',
-      userGame = getUserGame(userId);
+      userGameId = getUserGame(userId);
   
   //User already in game
-  if( userGame !== null ) {
+  if( userGameId !== null && userGameId !== false ) {
     
+    console.log('user already in game');
     //handle error 
     return false;
     
@@ -370,6 +512,7 @@ function joinGame( gameId, userId ) {
   //Game doesn't exist
   if( typeof game == 'undefined') {
     
+    console.log('Game doesn\'t exist ');
     //handle error 
     return false;
     
@@ -378,6 +521,7 @@ function joinGame( gameId, userId ) {
   //Game full
   if( game.wPlayer !== null && game.bPlayer !== null ) {
    
+    console.log('Game full ');
     //handle error 
     return false;
     
@@ -386,10 +530,12 @@ function joinGame( gameId, userId ) {
   if( game.wPlayer == null ) {
     
     game.wPlayer = userId;
+    game.wName = user.name;
     
   } else {
    
     game.bPlayer = userId;
+    game.bName = user.name;
     
   }
   
@@ -416,6 +562,8 @@ function joinGame( gameId, userId ) {
     return oldUser;
 
   });
+  
+  setPlayerOnlineStatus( userId, true );
   
   return game;
   
@@ -535,5 +683,107 @@ function getAvailableGames(ws) {
   
   let message = { type: 'availableGames', message: gamesToBroadcast };
   ws.send(JSON.stringify(message));
+  
+}
+
+function changeUserName( userId, name ) {
+  
+  console.log('----------------------');
+  console.log('changeUserName');
+  
+  let gameId = null,
+      updatedGames = false;
+  
+  users = _.map(users, (user)=>{
+    
+    if( user.id == userId ) {
+      
+      user.name = name;
+      gameId = user.game;
+      
+    }
+    
+    return user;
+    
+  }); 
+  
+  games = _.map(games, (game)=>{
+    
+    if( game.id == gameId ) {
+     
+      if( game.wPlayer == userId ) {
+       
+        game.wName = name;
+        updatedGames = true;
+        
+      }
+      
+      if( game.bPlayer == userId ) {
+       
+        game.bName = name;
+        updatedGames = true;
+        
+      }
+      
+    }
+    
+    return game;
+    
+  });
+  
+  if( updatedGames ) {
+    
+    sendGameState(gameId);
+    
+  }
+  
+}
+
+function setPlayerOnlineStatus(userId, online) {
+  
+  let gameId = null;
+  
+  //Update connections
+  users = _.map( users, (user)=>{
+    
+    if( user.id == userId ) {
+     
+      user.online = online;
+      gameId = user.game;
+      
+    }
+    
+    return user;
+    
+  });
+  
+  console.log(games);
+  
+  //Update games
+  if( gameId !== null ) {
+    
+    games = _.map( games, (game)=>{
+
+      if( game.wPlayer == userId ) {
+
+        game.wOnline = online;
+
+      }
+
+      if( game.bPlayer == userId ) {
+
+        game.bOnline = online;
+
+      }
+
+      return game;
+
+    });
+    
+    sendGameState( gameId );
+    
+  }
+  
+  console.log(games);
   
 }
