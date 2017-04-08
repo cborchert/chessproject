@@ -654,7 +654,23 @@ jQuery(document).ready( function($){
           
           game.playerName = modal.$modal.find('.user__name__input').val();
           ws.send(JSON.stringify({ type: 'changeName', name:game.playerName }));
-          modal.close()
+          var titles = [' the Butcher.', 
+                        ' the Great.', 
+                        ', destroyer of worlds.', 
+                        ' the sweet.', 
+                        ' with the red right hand.', 
+                        ' the nonchalant.', 
+                        ', mother of dragons.', 
+                        '... deep '+game.playerName+'.', 
+                        ' the regicide.', 
+                        ' aka "Babyface"',
+                        ' the dunce.',
+                        ' the inept.',
+                        ' of questionable intelligence',
+                        ' the baffled',
+                        ', Dovahkiin. DRAGONBORN!'],
+              title = titles[ Math.floor(Math.random()*titles.length) ];
+          modal.prompt(' ', 'You shall be known heretofore as ' + game.playerName + title);
           
         }
 
