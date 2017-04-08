@@ -855,7 +855,8 @@ jQuery(document).ready( function($){
     } else {
       
       modal.prompt('Disconnection', 'Hmmm... The connection with the server has been closed. Try reloading the page.');
-    
+      location.reload();
+      
     }
     
   };
