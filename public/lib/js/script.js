@@ -832,7 +832,15 @@ jQuery(document).ready( function($){
     console.log(event);
     $('#game').hide();
     $('#room').hide();
-    modal.prompt('Disconnection', 'The connection with the server has been closed. If you opened the game in another window, you can continue to play there, otherwise, reload the page.');
+    if( event.wasClean ) {
+      
+      modal.prompt('Disconnection', 'The connection with the server has been closed. If you opened the game in another window, you can continue to play there, otherwise, try reloading the page.');
+    
+    } else {
+      
+      modal.prompt('Disconnection', 'Hmmm... The connection with the server has been closed. Try reloading the page.');
+    
+    }
     
   };
   
