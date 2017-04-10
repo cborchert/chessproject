@@ -31,6 +31,41 @@ jQuery(document).ready( function($){
     wOnline: false,
     isInit: false,
 
+    reset: function() {
+    
+      game.chess = new Chess();
+      game.history = [];
+      game.shadeInvisible = true;
+      game.shadeThreat = true;
+      game.shadeMovement = true;
+      game.opponentInvisible = false;
+      game.opponentPiecesAnonymous = false;
+      game.opponentReady = true;
+      game.opponentAutoplay = false;
+      game.alwaysDraw = false;
+      game.playerIsMoving = false;
+      game.playerIsPromoting = false;
+      game.playerSelectedSquare = false;
+      game.playerColor = 'w';
+      game.playerNeedsToPromote = false;
+      game.playerPromotionChoice = '';
+      game.captures = [];
+      game.showOpponentCaptures = true;
+      game.showPlayerCaptures = true;
+      game.announceCheckOnOpponent = true;
+      game.announceCheckOnPlayer = true;
+      game.gameStarted = false;
+      game.bName = '[empty]';
+      game.wName = '[empty]';
+      game.bOnline = false;
+      game.wOnline = false;
+      game.isInit = false;
+      
+      $('.board__square').off('click');
+      $('#game').off('click', '.player__me');
+      
+    },
+    
     init: function() {
 
       game.drawBoard();
@@ -1080,6 +1115,7 @@ jQuery(document).ready( function($){
   
   $('button.js-create-game').click( function() {
     
+    game.reset();
     modal.optionsPrompt();
     $('#game').show();
     $('#room').hide();
