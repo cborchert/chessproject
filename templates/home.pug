@@ -16,29 +16,46 @@ body
     #room__games.cf
     
   #game(style="display: none;")
-    .players
-      .player.player__white
-        span.player__name [empty]
-      .player.player__black
-        span.player__name [empty]
-    .board
-      - var n = 8;
-      while n > 0
-        .board__row(data-row=n)
-          - var cols = 'abcdefgh';
-          - var m = 0;
-          while m < 8
-            .board__square(data-id=cols[m]+n)
-              .board__square__overlay.board__square__overlay--threat
-              .board__square__overlay.board__square__overlay--movement
-              .board__square__overlay.board__square__overlay--invisible
-              .board__square__overlay.board__piece
-              - m++
-          - n--
+    .game-panels
+      .game-panel
+        .game-options
+          .game-option.game-option__board
+            button.btn.js-view-board Board
+          .game-option.game-option__chat
+            button.btn.js-view-chat.btn--green Chat
+          .game-option.game-option__quit
+            button.btn.js-quit-game.btn--red Quit
 
-    .captures
-      .captures__black
-      .captures__white
+        .players
+          .player.player__white
+            span.player__name [empty]
+          .player.player__black
+            span.player__name [empty]
+        .board
+          - var n = 8;
+          while n > 0
+            .board__row(data-row=n)
+              - var cols = 'abcdefgh';
+              - var m = 0;
+              while m < 8
+                .board__square(data-id=cols[m]+n)
+                  .board__square__overlay.board__square__overlay--threat
+                  .board__square__overlay.board__square__overlay--movement
+                  .board__square__overlay.board__square__overlay--invisible
+                  .board__square__overlay.board__piece
+                  - m++
+              - n--
+        .captures
+          .captures__black
+          .captures__white
+
+      .game-panel.game-panel--chat
+        .chat
+          .chat__messages
+          .chat__to-send
+            textarea.chat__to-send__message
+            .btn.chat__to-send__send.js-send-chat Send
+          
 
   .modal-overlay
     .modal
@@ -89,7 +106,8 @@ body
           .
             I'll play as white
       .modal__footer
-        button.modal__action.btn.btn--big
+        button.modal__cancel.btn.btn--big.btn--spaced.btn--empty Cancel
+        button.modal__action.btn.btn--big.btn--spaced
   
   script#single-game-template(type="text/x-handlebars-template")
     .
@@ -128,4 +146,14 @@ body
         .room__footer.
           <button class="js-join-game btn" data-game-id="{{this.game.id}}">Join</button>
     .
+      {{/each}}
+      
+  script#messages-template(type="text/x-handlebars-template")
+    .
+      {{#each items}}
+        <div class="chat__message {{this.classes}}">
+          <div class="chat__message__text">
+            {{this.message}}
+          </div>
+        </div>  
       {{/each}}

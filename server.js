@@ -393,6 +393,14 @@ function userHandleMessage(ws, event) {
    
     changeUserName( userId, data.name);
     
+  } else if( data.type == 'addMessage' ) {
+   
+    addMessage( userId, data.message);
+    
+  } else if( data.type == 'quitGame' ) {
+    
+    quitGame( userId );
+    
   }
   
 }
@@ -443,7 +451,8 @@ function createGame(userId, options) {
     wOnline: false,
     bOnline: false,
     wName: '[empty]',
-    bName: '[empty]'
+    bName: '[empty]',
+    messages: []
     
   };
   
@@ -694,6 +703,9 @@ function changeUserName( userId, name ) {
   let gameId = null,
       updatedGames = false;
   
+  //clean XSS
+  name = cleanXss(name);
+  
   users = _.map(users, (user)=>{
     
     if( user.id == userId ) {
@@ -785,5 +797,102 @@ function setPlayerOnlineStatus(userId, online) {
   }
   
   console.log(games);
+  
+}
+
+function quitGame( userId ){
+
+  let user = _.findWhere( users, {id: userId} ),
+      game = _.findWhere( games, {id: user.game });
+  
+  if( typeof game == 'undefined' || game == null || game == false ) {
+    
+    return false;
+    
+  }
+  
+  let wPlayerWs = getConnectionFromUserId( game.wPlayer ),
+      bPlayerWs = getConnectionFromUserId( game.bPlayer ),
+      message;
+  
+  //send player has quit game message
+  message = {type: 'quitGame', player: userId};
+  
+  if( typeof wPlayerWs !== 'undefined' && wPlayerWs !== null && wPlayerWs !== false ) {
+    
+    wPlayerWs.send( JSON.stringify(message) );
+    
+  }
+  
+  if( typeof bPlayerWs !== 'undefined' && bPlayerWs !== null && bPlayerWs !== false ) {
+  
+    bPlayerWs.send( JSON.stringify(message) );
+  
+  }
+  //delete game
+  games = _.reject( games, {id: user.game } );
+  
+  //clear game from users
+  users = _.map( users, (user)=>{
+    
+    if( user.game == game.id ) {
+      
+      user.game = null;
+      
+    } 
+    
+    return user;
+    
+  });
+  
+  //send delete game message
+  message = {type: 'deleteGame', game: game.id};
+  if( typeof wPlayerWs !== 'undefined' && wPlayerWs !== null && wPlayerWs !== false ) {
+    
+    wPlayerWs.send( JSON.stringify(message) );
+    
+  }
+  
+  if( typeof bPlayerWs !== 'undefined' && bPlayerWs !== null && bPlayerWs !== false ) {
+  
+    bPlayerWs.send( JSON.stringify(message) );
+  
+  }
+  
+  //Make sure incoming players cannot see game
+  broadcastAvailableGames();
+  
+}
+
+function addMessage( userId, message ) {
+ 
+  let user = _.findWhere( users, {id: userId} );
+  
+  message = cleanXss( message );
+  
+  games = _.map( games, (game)=>{
+    
+    if( game.id == user.game ) {
+     
+      game.messages.push( {userId: userId, message: message} );
+      
+    }
+    
+    return game;
+    
+  });
+  
+  sendGameState( user.game );
+  
+}
+
+function cleanXss( string ) {
+ 
+  let lt = /</g, 
+      gt = />/g, 
+      ap = /'/g, 
+      ic = /"/g;
+  
+  return string.toString().replace(lt, "&lt;").replace(gt, "&gt;").replace(ap, "&#39;").replace(ic, "&#34;");
   
 }

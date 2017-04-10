@@ -384,6 +384,13 @@ jQuery(document).ready( function($){
 
     moveStep( squareId ) {
 
+      if( game.chess.turn() !== game.playerColor ) {
+        
+        console.log('not your turn');
+        return false;
+        
+      }
+      
       if( !this.playerIsMoving ) {
 
         console.log('player not moving');
@@ -616,6 +623,12 @@ jQuery(document).ready( function($){
 
       this.$modal.find('.modal__game-options').hide();
 
+      $(this.$modal).on('click', '.modal__cancel', function(e) {
+      
+        modal.close();
+        
+      });
+      
       $(this.$modal).on('click', '.modal__action', function(e) {
 
         e.preventDefault;
@@ -670,7 +683,25 @@ jQuery(document).ready( function($){
                         ' the baffled',
                         ', Dovahkiin. DRAGONBORN!'],
               title = titles[ Math.floor(Math.random()*titles.length) ];
-          modal.prompt(' ', 'You shall be known heretofore as ' + game.playerName + title);
+//          modal.prompt(' ', 'You shall be known heretofore as ' + game.playerName + title);
+          modal.close();
+          
+        }
+        
+        if( action == 'quit-game' ) {
+         
+          ws.send(JSON.stringify({ type: 'quitGame'}));
+          modal.close();
+          
+        }
+        
+        if( action == 'go-home' ) {
+         
+          $('#room').show();
+          $('#game').hide();
+          $('.chat__messages').html('');
+          ws.send(JSON.stringify({ type: 'getAvailableGames'}));
+          modal.close();
           
         }
 
@@ -683,9 +714,11 @@ jQuery(document).ready( function($){
       var $head = modal.$modal.find('.modal__head'),
           $body = modal.$modal.find('.modal__body'),
           $action = modal.$modal.find('.modal__action'),
+          $cancel = modal.$modal.find('.modal__cancel'),
           $gameOptions= modal.$modal.find('.modal__game-options'),
           $userNamePrompt = modal.$modal.find('.modal__game-name');
 
+      $cancel.hide();
       $userNamePrompt.hide();
       $gameOptions.hide();
       $head.html(headerText);
@@ -702,9 +735,11 @@ jQuery(document).ready( function($){
       var $head = modal.$modal.find('.modal__head'),
           $body = modal.$modal.find('.modal__body'),
           $action = modal.$modal.find('.modal__action'),
+          $cancel = modal.$modal.find('.modal__cancel'),
           $gameOptions= modal.$modal.find('.modal__game-options'),
           $userNamePrompt = modal.$modal.find('.modal__game-name');
 
+      $cancel.hide();
       $gameOptions.hide();
       $userNamePrompt.hide();
       $head.html('Promote your pawn');
@@ -743,9 +778,11 @@ jQuery(document).ready( function($){
           $body = modal.$modal.find('.modal__body'),
           $action = modal.$modal.find('.modal__action'),
           $gameOptions= modal.$modal.find('.modal__game-options'),
+          $cancel = modal.$modal.find('.modal__cancel'),
           $userNamePrompt = modal.$modal.find('.modal__game-name');
 
       $gameOptions.hide();
+      $cancel.hide();
       $userNamePrompt.show();
       modal.$modal.find('.user__name').html(game.playerName);
       modal.$modal.find('.user__name__input').val(game.playerName);
@@ -765,10 +802,12 @@ jQuery(document).ready( function($){
           $body = modal.$modal.find('.modal__body'),
           $action = modal.$modal.find('.modal__action'),
           $gameOptions = modal.$modal.find('.modal__game-options'),
+          $cancel = modal.$modal.find('.modal__cancel'),
           $userNamePrompt = modal.$modal.find('.modal__game-name');
 
       $userNamePrompt.hide();
       $gameOptions.show();
+      $cancel.hide();
       $head.html('Game Options');
       $body.html('');
       $action.html('Start Game');
@@ -820,6 +859,57 @@ jQuery(document).ready( function($){
 
     },
 
+    quitPrompt: function() {
+
+      var $head = modal.$modal.find('.modal__head'),
+          $body = modal.$modal.find('.modal__body'),
+          $action = modal.$modal.find('.modal__action'),
+          $cancel = modal.$modal.find('.modal__cancel'),
+          $gameOptions = modal.$modal.find('.modal__game-options'),
+          $userNamePrompt = modal.$modal.find('.modal__game-name');
+
+      $userNamePrompt.hide();
+      $gameOptions.hide();
+      $cancel.show();
+      
+      $head.html('Are you sure you want to quit?');
+      $body.html('');
+      $action.html('Quit Game');
+      $action.data('action','quit-game');
+      
+      modal.open();
+
+    },
+    
+    gameEndedPrompt: function( playerQuitId ) {
+
+      var $head = modal.$modal.find('.modal__head'),
+          $body = modal.$modal.find('.modal__body'),
+          $action = modal.$modal.find('.modal__action'),
+          $cancel = modal.$modal.find('.modal__cancel'),
+          $gameOptions = modal.$modal.find('.modal__game-options'),
+          $userNamePrompt = modal.$modal.find('.modal__game-name');
+
+      $userNamePrompt.hide();
+      $gameOptions.hide();
+      $cancel.hide();
+      
+      var playerQuitName = 'You';
+      if( playerQuitId !== userId ) {
+        
+        playerQuitName = game.playerColor == 'w'?game.bName:game.wName;
+        
+      }
+        
+      $head.html(playerQuitName + ' quit the game');
+      $body.html('');
+      $action.html('Okay');
+      $action.data('action','go-home');
+      
+      modal.open();
+
+    },
+
     close: function() {
 
       modal.$overlay.removeClass('modal-overlay--open');
@@ -837,9 +927,12 @@ jQuery(document).ready( function($){
   var HOST = location.origin.replace(/^http/, 'ws'),
       userId = false,
       ws = new WebSocket(HOST),
-      source   = $("#single-game-template").html(),
+      source   = $('#single-game-template').html(),
       template = Handlebars.compile(source),
-      context = {items: []};
+      context = {items: []},
+      messagesSource = $('#messages-template').html(),
+      messagesTemplate = Handlebars.compile(messagesSource),
+      messagesContext = {items: []};
   
   console.log('this is happening more than once');
   
@@ -870,12 +963,41 @@ jQuery(document).ready( function($){
     if( data.type == 'gameState' ) {
       
       console.log(' getting game state ');
-      
       console.log( data.game );
+      
       $('#game').show();
       $('#room').hide();
       game.setOptions(data.game);
       game.gameStep();
+      
+      messagesContext.items = [];
+      data.game.messages.forEach( function( message ){
+        
+        message.classes = '';
+        
+        var textArea = document.createElement('textarea');
+        textArea.innerHTML = message.message;
+        message.message = textArea.value;
+        
+        if( message.userId == userId ) {
+          
+          message.classes += ' chat__message--me';
+          message.classes += game.playerColor == 'w'?' chat__message--white':' chat__message--black';
+          
+        } else {
+          
+          message.classes += game.playerColor == 'b'?' chat__message--white':' chat__message--black';
+          
+        }
+        
+        messagesContext.items.push(message);
+        
+      });
+      
+      var html = messagesTemplate(messagesContext);
+      $('.chat__messages').html(html);
+      $('.chat__messages').scrollTop( $('.chat__messages').prop('scrollHeight') );
+      
       
     } else if( data.type == 'userIdCreated' ) {
       
@@ -943,6 +1065,10 @@ jQuery(document).ready( function($){
       console.log(userId);
       ws.send(JSON.stringify({ type: 'loadUser', userId: userId }));
       
+    } else if( data.type == 'quitGame' ) {
+     
+      modal.gameEndedPrompt( data.player );
+      
     } else if( data.type == 'forceDisconnection' ) {
      
       ws.close();
@@ -950,12 +1076,39 @@ jQuery(document).ready( function($){
     }
 
   };
+
   
   $('button.js-create-game').click( function() {
     
     modal.optionsPrompt();
     $('#game').show();
     $('#room').hide();
+    
+  });
+  
+  $('.js-view-board').click( function() { 
+  
+    $('.game-panel--chat').removeClass('game-panel--chat--in-front');
+    
+  });
+  
+  $('.js-view-chat').click( function() { 
+  
+    $('.game-panel--chat').addClass('game-panel--chat--in-front');
+    
+  });
+  
+  $('.js-send-chat').click( function() {
+    
+    var $chatMessage = $('.chat__to-send__message');
+    ws.send( JSON.stringify({ type: 'addMessage', message: $chatMessage.val() }));
+    $chatMessage.val('');
+    
+  });
+  
+  $('button.js-quit-game').click( function() {
+    
+    modal.quitPrompt();
     
   });
   
