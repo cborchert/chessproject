@@ -181,7 +181,7 @@ jQuery(document).ready( function($){
         $('.player__black').addClass('player__me');
         
       }
-      game.playerName = $('.player__me').html();
+      game.playerName = $('.player__me .player__name').html();
       
       //Active status
       $('.player').removeClass('player--active');
